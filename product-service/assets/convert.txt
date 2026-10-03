@@ -1,0 +1,15 @@
+// 1. Gambar Create Data (POST Image Valid)
+$b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("product-service\assets\Mouse Wireless.jpg"))
+Set-Content -LiteralPath "product-service\assets\Mouse Wireless.jpg.b64" -Value $b64 -Encoding ascii -NoNewline
+(Get-Item "product-service\assets\Mouse Wireless.jpg.b64").Length
+
+// 2. Gambar Large Data (POST Error > 2MB)
+$b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("product-service\assets\Mouse Wireless.jpg"))
+$b64Large = ($b64) * 18
+Set-Content -LiteralPath "product-service\assets\Mouse Wireless_Large.jpg.b64" -Value $b64Large -Encoding ascii -NoNewline
+(Get-Item "product-service\assets\Mouse Wireless_Large.jpg.b64").Length
+
+// 3. Gambar Update Data (PUT Image Valid)
+$b64Update = [Convert]::ToBase64String([IO.File]::ReadAllBytes("product-service\assets\mouse wireless update.jpg"))
+Set-Content -LiteralPath "product-service\assets\mouse wireless update.jpg.b64" -Value $b64Update -Encoding ascii -NoNewline
+(Get-Item "product-service\assets\mouse wireless update.jpg.b64").Length

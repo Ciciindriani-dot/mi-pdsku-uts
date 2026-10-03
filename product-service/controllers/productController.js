@@ -1,5 +1,28 @@
 const productModel = require('../models/productModel');
 
+// Helper function untuk validasi Base64 Image
+function validateBase64Image(image) {
+    if (!image || typeof image !== 'string' || image.trim() === '') {
+        return { valid: false, message: "Field image wajib diisi" };
+    }
+
+    let cleanBase64 = image.includes(',') ? image.split(',')[1] : image;
+
+    const base64Regex = /^[A-Za-z0-9+/]+={0,2}$/;
+    if (cleanBase64.length % 4 !== 0 || !base64Regex.test(cleanBase64)) {
+        return { valid: false, message: "Field image harus berupa Base64 yang valid" };
+    }
+
+    const imageBuffer = Buffer.from(cleanBase64, 'base64');
+    const maxSizeInBytes = 2 * 1024 * 1024;
+
+    if (imageBuffer.length > maxSizeInBytes) {
+        return { valid: false, message: "Ukuran image maksimal 2 MB" };
+    }
+
+    return { valid: true, cleanBase64: cleanBase64 };
+}
+
 // GET - Ambil semua product
 async function index(req, res) {
     try {
@@ -43,7 +66,14 @@ async function getById(req, res) {
 // POST - Tambah product baru
 async function create(req, res) {
     try {
-        const { name, description, price, stock } = req.body;
+        const { name, description, price, stock, image } = req.body;
+
+        const imageValidation = validateBase64Image(image);
+        if (!imageValidation.valid) {
+            return res.status(400).json({
+                message: imageValidation.message
+            });
+        }
 
         if (!name || !price) {
             return res.status(400).json({
@@ -51,7 +81,13 @@ async function create(req, res) {
             });
         }
 
-        const insertId = await productModel.createProduct({ name, description, price, stock });
+        const insertId = await productModel.createProduct({ 
+            name, 
+            description, 
+            price, 
+            stock, 
+            image: imageValidation.cleanBase64
+        });
         const newProduct = await productModel.getProductById(insertId);
 
         res.status(201).json({
@@ -70,13 +106,25 @@ async function create(req, res) {
 async function update(req, res) {
     try {
         const { id } = req.params;
-        const { name, description, price, stock } = req.body;
+        const { name, description, price, stock, image } = req.body;
 
-        const existingProduct = await productModel.getProductById(id);
+       const existingProduct = await productModel.getProductById(id);
         if (!existingProduct) {
             return res.status(404).json({
                 message: "Product tidak ditemukan"
             });
+        }
+
+        // Validasi image jika dikirim/di-update
+        let updatedImage = existingProduct.image;
+        if (image !== undefined) {
+            const validation = validateBase64Image(image);
+            if (!validation.valid) {
+                return res.status(400).json({
+                    message: validation.message
+                });
+            }
+            updatedImage = validation.cleanBase64;
         }
 
         const updatedData = {
@@ -84,6 +132,7 @@ async function update(req, res) {
             description: description !== undefined ? description : existingProduct.description,
             price: price !== undefined ? price : existingProduct.price,
             stock: stock !== undefined ? stock : existingProduct.stock,
+            image: updatedImage
         };
 
         const product = await productModel.updateProduct(id, updatedData);
