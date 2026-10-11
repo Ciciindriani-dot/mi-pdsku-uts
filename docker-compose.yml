@@ -30,5 +30,44 @@ services:
       retries: 5
       start_period: 30s
       timeout: 5s
+
+  cart-service:
+    build:
+      context: ./cart-service
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3002"
+    environment:
+      - DB_HOST=cart-db
+      - DB_USER=postgres
+      - DB_PASSWORD=Dev@root23
+      - DB_NAME=cartdb
+      - APP_ENV=docker
+    depends_on:
+      - cart-db
+    healthcheck:
+      test: ["CMD", "pg_isready", "--host=cart-db", "--username=postgres", "--dbname=cartdb"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+    command: bash -c "php artisan migrate && php -S 0.0.0.0:3002 -t public"
+
+  cart-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres  
+      POSTGRES_PASSWORD: Dev@root23
+      POSTGRES_DB: cartdb
+    volumes:
+      - cart-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "--host=localhost", "--username=postgres", "--dbname=cartdb"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+
 volumes:
   product-db-data:
+  cart-db-data:
