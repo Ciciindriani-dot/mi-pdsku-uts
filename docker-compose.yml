@@ -1,5 +1,5 @@
 services:
-  product-services:
+  product-service:
     build: 
       context: ./product-service
       dockerfile: Dockerfile
@@ -21,9 +21,11 @@ services:
       - MYSQL_USER=appuser
       - MYSQL_PASSWORD=apppassword
       - MYSQL_ROOT_PASSWORD=rootpassword
+    ports:
+      - "3306:3306"
     volumes:
       - product-db-data:/var/lib/mysql
-      - ./database:/docker-entrypoint-initdb.d
+      - ./product-service/database:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost","--user=root","--password=rootpassword"]
       interval: 10s
@@ -36,22 +38,26 @@ services:
       context: ./cart-service
       dockerfile: Dockerfile
     ports:
-      - "3001:3002"
+      - "3001:3001"
     environment:
       - DB_HOST=cart-db
       - DB_USER=postgres
       - DB_PASSWORD=Dev@root23
       - DB_NAME=cartdb
       - APP_ENV=docker
+      - PRODUCT_SERVICE_URL=http://product-service:3000
     depends_on:
-      - cart-db
+      cart-db:
+        condition: service_healthy
+      product-service:
+        condition: service_started
     healthcheck:
       test: ["CMD", "pg_isready", "--host=cart-db", "--username=postgres", "--dbname=cartdb"]
       interval: 10s
       retries: 5
       start_period: 30s
       timeout: 5s
-    command: bash -c "php artisan migrate && php -S 0.0.0.0:3002 -t public"
+    command: bash -c "php artisan migrate && php -S 0.0.0.0:3001 -t public"
 
   cart-db:
     image: postgres:13
@@ -59,6 +65,8 @@ services:
       POSTGRES_USER: postgres  
       POSTGRES_PASSWORD: Dev@root23
       POSTGRES_DB: cartdb
+    ports:
+      - "5432:5432"
     volumes:
       - cart-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -68,6 +76,42 @@ services:
       start_period: 30s
       timeout: 5s
 
+  review-service:
+    build:
+      context: ./review-service
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3002
+      - FLASK_DEBUG=1
+      - MONGO_URI=mongodb://appuser:apppassword@review-db:27017/?authSource=admin
+      - MONGO_DB_NAME=reviewdb
+      - PRODUCT_SERVICE_URL=http://product-service:3000
+    depends_on:
+      review-db:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+
+  review-db:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: appuser
+      MONGO_INITDB_ROOT_PASSWORD: apppassword
+    ports:
+      - "27017:27017"
+    volumes:
+      - review-db-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      retries: 5
+      start_period: 20s
+      timeout: 5s
+
 volumes:
   product-db-data:
   cart-db-data:
+  review-db-data:
