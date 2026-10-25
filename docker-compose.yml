@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   product-service:
     build: 
@@ -13,6 +15,8 @@ services:
     depends_on:
       product-db:
         condition: service_healthy
+    networks:
+      - microservices-net
 
   product-db:
     image: mysql:8.0
@@ -32,6 +36,8 @@ services:
       retries: 5
       start_period: 30s
       timeout: 5s
+    networks:
+      - microservices-net
 
   cart-service:
     build:
@@ -58,6 +64,8 @@ services:
       start_period: 30s
       timeout: 5s
     command: bash -c "php artisan migrate && php -S 0.0.0.0:3001 -t public"
+    networks:
+      - microservices-net
 
   cart-db:
     image: postgres:13
@@ -75,6 +83,8 @@ services:
       retries: 5
       start_period: 30s
       timeout: 5s
+    networks:
+      - microservices-net
 
   review-service:
     build:
@@ -94,6 +104,8 @@ services:
         condition: service_healthy
       product-service:
         condition: service_started
+    networks:
+      - microservices-net
 
   review-db:
     image: mongo:7
@@ -110,8 +122,70 @@ services:
       retries: 5
       start_period: 20s
       timeout: 5s
+    networks:
+      - microservices-net
+
+  # ==========================================
+  # ORDER SERVICE (UTS Microservices)
+  # ==========================================
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=order-db
+      - DB_PORT=3306
+      - DB_DATABASE=order_service_db
+      - DB_USERNAME=root
+      - DB_PASSWORD=rootpassword
+      - APP_ENV=docker
+      - APP_DEBUG=true
+      - PRODUCT_SERVICE_URL=http://product-service:3000
+      - CART_SERVICE_URL=http://cart-service:3001
+    depends_on:
+      order-db:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+      cart-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "php", "artisan", "about"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+    command: bash -c "php artisan migrate && php -S 0.0.0.0:3003 -t public"
+    networks:
+      - microservices-net
+
+  order-db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=order_service_db
+      - MYSQL_ROOT_PASSWORD=rootpassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - order-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost","--user=root","--password=rootpassword"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+    networks:
+      - microservices-net
 
 volumes:
   product-db-data:
   cart-db-data:
   review-db-data:
+  order-db-data:
+
+networks:
+  microservices-net:
+    driver: bridge
