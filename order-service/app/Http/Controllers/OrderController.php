@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\OrderItem;
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreOrderRequest;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
@@ -19,18 +19,9 @@ class OrderController extends Controller
         ], 200);
     }
 
-    // Menyimpan order baru (Transaksi)
-    public function store(Request $request)
+    // Menyimpan order baru (Transaksi) menggunakan StoreOrderRequest
+    public function store(StoreOrderRequest $request)
     {
-        $request->validate([
-            'user_id' => 'required|integer',
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer',
-            'items.*.product_name' => 'required|string',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.quantity' => 'required|integer|min:1',
-        ]);
-
         try {
             $order = DB::transaction(function () use ($request) {
                 // Hitung total amount dari items
