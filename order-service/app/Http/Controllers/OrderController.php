@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Http\Requests\StoreOrderRequest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
@@ -109,6 +110,38 @@ class OrderController extends Controller
         return response()->json([
             'message' => 'Pesanan berhasil dibayar',
             'data' => $order
+        ], 200);
+    }
+
+    // Menampilkan daftar pesanan berdasarkan user_id, dengan filter opsional ?status=
+    public function getByUser(Request $request, $userId)
+    {
+        $query = Order::with('items')->where('user_id', $userId);
+
+        // Filter opsional berdasarkan status
+        if ($request->has('status')) {
+            $status = strtoupper($request->query('status'));
+            
+            // Validasi nilai status yang sah hanya PENDING atau PAID
+            if (!in_array($status, ['PENDING', 'PAID'])) {
+                return response()->json([
+                    'message' => 'Data yang dikirim tidak valid',
+                    'errors' => [
+                        'status' => [
+                            'Status harus PENDING atau PAID'
+                        ]
+                    ]
+                ], 422);
+            }
+
+            $query->where('status', $status);
+        }
+
+        $orders = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'message' => 'Berhasil mengambil daftar pesanan',
+            'data' => $orders
         ], 200);
     }
 }
