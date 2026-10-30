@@ -144,4 +144,13 @@ class OrderController extends Controller
             'data' => $orders
         ], 200);
     }
+
+    // Mengecek status kesehatan service
+    public function health()
+    {
+        return response()->json([
+            'status' => 'ok',
+            'service' => 'order-service'
+        ], 200);
+    }
 }
