@@ -85,4 +85,30 @@ class OrderController extends Controller
             'data' => $order
         ], 200);
     }
+
+    // Simulasi pembayaran pesanan: mengubah status dari PENDING menjadi PAID
+    public function pay($id)
+    {
+        $order = Order::with('items')->find($id);
+
+        if (!$order) {
+            return response()->json([
+                'message' => "Pesanan dengan id {$id} tidak ditemukan"
+            ], 404);
+        }
+
+        if ($order->status !== 'PENDING') {
+            return response()->json([
+                'message' => "Pesanan berstatus {$order->status}, hanya pesanan PENDING yang dapat dibayar"
+            ], 409);
+        }
+
+        $order->status = 'PAID';
+        $order->save();
+
+        return response()->json([
+            'message' => 'Pesanan berhasil dibayar',
+            'data' => $order
+        ], 200);
+    }
 }
