@@ -11,15 +11,10 @@ class StoreOrderRequest extends FormRequest
         return true;
     }
 
-    public function rules(): array
+    public function rules(): array 
     {
         return [
             'user_id' => 'required|integer',
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer',
-            'items.*.product_name' => 'required|string',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.quantity' => 'required|integer|min:1',
         ];
     }
 }

@@ -37,8 +37,15 @@ class OrderController extends Controller
             ], 201);
         } catch (Exception $e) {
             $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
+            $message = $e->getMessage();
+            if (($status == 500 || $status == 503) && !config('app.debug')) {
+                $message = $status == 503 
+                    ? "Product service atau Cart service tidak dapat dihubungi, coba lagi nanti" 
+                    : "Terjadi kesalahan pada server";
+            }
+
             return response()->json([
-                'message' => $e->getMessage()
+                'message' => $message
             ], $status);
         }
     }

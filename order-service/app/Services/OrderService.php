@@ -73,12 +73,18 @@ class OrderService
             foreach ($orderItemsData as $itemData) {
                 $order->items()->create($itemData);
             }
-
-            // Kosongkan keranjang setelah order berhasil
-            $this->cartClient->clearCart($userId);
-
+            
             return $order->load('items');
         });
+
+        try {
+            $this->cartClient->clearCart($userId);
+        } catch (\Exception $e) {
+            // Catat kegagalan ke log, tapi pesanan tetap aman (tidak dibatalkan)
+            \Illuminate\Support\Facades\Log::warning("Gagal mengosongkan keranjang untuk user {$userId}: " . $e->getMessage());
+        }
+
+        return $order->load('items');
     }
 
     public function getOrderById($id)

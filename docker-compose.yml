@@ -29,7 +29,7 @@ services:
       - "3306:3306"
     volumes:
       - product-db-data:/var/lib/mysql
-      - ./product-service/database:/docker-entrypoint-initdb.d
+      - ./database:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost","--user=root","--password=rootpassword"]
       interval: 10s

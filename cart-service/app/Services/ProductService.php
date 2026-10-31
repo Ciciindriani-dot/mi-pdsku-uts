@@ -11,11 +11,12 @@ class ProductService
     public function getProduct(int $productId): ?array
     {
         try {
-            $response = Http::baseUrl(config('services.produk.url'))
-                ->get("/api/products/{$productId}");
+            $baseUrl = env('PRODUCT_SERVICE_URL', 'http://product-service:3000');
+            $response = Http::get("{$baseUrl}/products/{$productId}");
 
-            if ($response->successful() && isset($response->json()['data'])) {
-                return $response->json()['data'];
+            if ($response->successful()) {
+                $json = $response->json();
+                return $json['data'] ?? $json;
             }
             
             return null;
